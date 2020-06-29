@@ -14,14 +14,11 @@ func Unhex(s string) []byte {
 	return b
 }
 
-// XOR operates on a and b, which must be the same length.
+// XOR xors a with b. If b is shorter than a, it is repeated.
 func XOR(a, b []byte) []byte {
-	if len(a) != len(b) {
-		panic(fmt.Sprintf("buffer lengths don't match (%v vs. %v)", len(a), len(b)))
-	}
 	x := make([]byte, len(a))
 	for i := range a {
-		x[i] = a[i] ^ b[i]
+		x[i] = a[i] ^ b[i%len(b)]
 	}
 	return x
 }
