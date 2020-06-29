@@ -2,9 +2,7 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"sort"
 
 	"github.com/derat/cryptopals/common"
@@ -14,14 +12,7 @@ func main() {
 	// Suggested test of Hamming distance code (should be 37)
 	//fmt.Println(common.Hamming([]byte("this is a test"), []byte("wokka wokka!!!")))
 
-	b, err := ioutil.ReadFile("6.txt")
-	if err != nil {
-		panic(err)
-	}
-	enc, err := base64.StdEncoding.DecodeString(string(b))
-	if err != nil {
-		panic(err)
-	}
+	enc := common.ReadBase64("6.txt")
 
 	const (
 		minKeysize  = 2
