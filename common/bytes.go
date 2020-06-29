@@ -1,8 +1,10 @@
 package common
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 )
 
 // Unhex decodes the supplied hexadecimal string, panicking on error.
@@ -63,4 +65,22 @@ func Hamming(a, b []byte) int {
 		}
 	}
 	return dist
+}
+
+// RandBytes returns a slice of n cryptographically-secure random bytes.
+func RandBytes(n int) []byte {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return b
+}
+
+// RandInt returns a cryptographically-secure random integer in the range [0, n).
+func RandInt(max int) int {
+	v, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+	return int(v.Int64())
 }
