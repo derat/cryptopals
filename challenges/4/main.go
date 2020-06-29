@@ -3,9 +3,7 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"math"
 	"os"
 
 	"github.com/derat/cryptopals/common"
@@ -18,22 +16,17 @@ func main() {
 	}
 	defer f.Close()
 
-	bestDiff := math.MaxFloat64
 	var bestDec []byte
+	var bestScore *common.Score
 
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		enc := common.Unhex(sc.Text())
 		for i := 0; i < 256; i++ {
-			dec := common.XOR(enc, bytes.Repeat([]byte{byte(i)}, len(enc)))
-			upper := common.UpperBytes(common.AlphaBytes(dec))
-			if float64(len(upper)) < float64(len(dec))*0.75 {
-				continue
-			}
-			freqs := common.ByteFreqs(common.CountBytes(upper))
-			if diff := common.DiffByteFreqs(freqs, common.EnglishUpperFreqs); diff < bestDiff {
+			dec := common.XOR(enc, []byte{byte(i)})
+			if score := common.EnglishScore(dec); score.Better(bestScore) {
 				bestDec = dec
-				bestDiff = diff
+				bestScore = &score
 			}
 		}
 	}
@@ -41,7 +34,5 @@ func main() {
 		panic(err)
 	}
 
-	// TODO: This prints the following: "nOW\x00THAT\x00THE\x00PARTY\x00IS\x00JUMPING*" [0.646]
-	// That looks like the right string, but we're probably using the wrong key.
-	fmt.Printf("%q [%0.3f]\n", bestDec, bestDiff)
+	fmt.Printf("%q\n", bestDec)
 }

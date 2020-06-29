@@ -47,3 +47,20 @@ func AlphaBytes(orig []byte) []byte {
 	}
 	return alpha
 }
+
+// Hamming returns the Hamming distance (i.e. number of differing bits) between a and b,
+// which must be of the same length.
+func Hamming(a, b []byte) int {
+	if len(a) != len(b) {
+		panic(fmt.Sprintf("slice lengths differ (%v vs. %v)", len(a), len(b)))
+	}
+	dist := 0
+	for i := range a {
+		for diff := a[i] ^ b[i]; diff != 0; diff = diff >> 1 {
+			if diff&0x1 == 0x1 {
+				dist++
+			}
+		}
+	}
+	return dist
+}

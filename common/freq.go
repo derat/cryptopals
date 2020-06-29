@@ -1,6 +1,9 @@
 package common
 
-import "math"
+import (
+	"math"
+	"unicode"
+)
 
 // EnglishUpperFreqs contains relative frequencies of 'A' through 'Z' in English words.
 // All other bytes are 0.
@@ -58,17 +61,75 @@ func ByteFreqs(counts [256]int) [256]float64 {
 		total += counts[i]
 	}
 	var bf [256]float64
-	for i := range counts {
-		bf[i] = float64(counts[i]) / float64(total)
+	if total > 0 {
+		for i := range counts {
+			bf[i] = float64(counts[i]) / float64(total)
+		}
 	}
 	return bf
 }
 
-// DiffByteFreqs returns the sum of byte frequency differences between a and b.
+// DiffByteFreqs characterizes byte frequency differences between a and b.
+// The frequency distributions should each be normalized to sum to 1 (see ByteFreqs).
 func DiffByteFreqs(a, b [256]float64) float64 {
 	var total float64
 	for i := 0; i < 256; i++ {
 		total += math.Abs(a[i] - b[i])
 	}
 	return total
+}
+
+type Score struct {
+	Chars    int     // letters, digits, spaces
+	FreqDiff float64 // letter frequency difference (see DiffByteFreqs)
+}
+
+func (s *Score) Better(o *Score) bool {
+	if o == nil {
+		return true
+	}
+	if s.Chars > o.Chars {
+		return true
+	} else if o.Chars > s.Chars {
+		return false
+	}
+
+	return s.FreqDiff < o.FreqDiff
+}
+
+// EnglishScore generates an ad-hoc score for the likelihood that b contains English text.
+func EnglishScore(b []byte) Score {
+	var s Score
+	if len(b) == 0 {
+		return s
+	}
+
+	for _, ch := range b {
+		r := rune(ch)
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			s.Chars++
+		}
+	}
+
+	// Compare letters against the English distribution.
+	upper := UpperBytes(AlphaBytes(b))
+	freqs := ByteFreqs(CountBytes(upper))
+	s.FreqDiff = DiffByteFreqs(freqs, EnglishUpperFreqs)
+
+	return s
+}
+
+// SingleByteXOR tries to find the byte that's most likely to have been used for single-byte
+// XOR encryption of English text.
+func SingleByteXOR(enc []byte) byte {
+	var bestKey byte
+	var bestScore *Score
+	for i := 0; i < 256; i++ {
+		dec := XOR(enc, []byte{byte(i)})
+		if score := EnglishScore(dec); score.Better(bestScore) {
+			bestKey = byte(i)
+			bestScore = &score
+		}
+	}
+	return bestKey
 }
