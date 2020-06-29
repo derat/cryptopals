@@ -25,3 +25,28 @@ func XOR(a, b []byte) []byte {
 	}
 	return x
 }
+
+// UpperBytes returns a buffer where lowercase ASCII letters in orig are uppercased.
+// All other bytes are unchanged.
+func UpperBytes(orig []byte) []byte {
+	upper := make([]byte, len(orig))
+	for i, b := range orig {
+		if b >= 'a' && b <= 'z' {
+			upper[i] = 'A' + (b - 'a')
+		} else {
+			upper[i] = b
+		}
+	}
+	return upper
+}
+
+// AlphaBytes returns a buffer containing only ASCII letters from orig.
+func AlphaBytes(orig []byte) []byte {
+	alpha := make([]byte, 0, len(orig))
+	for _, b := range orig {
+		if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {
+			alpha = append(alpha, b)
+		}
+	}
+	return alpha
+}
