@@ -40,11 +40,9 @@ func decrypt(enc []byte) (map[string]string, error) {
 }
 
 func main() {
-	// figure out how long email needs to be to make "role=" appear at end of block
-	// then create a block beginning with "admin"
-	// then paste them together
-
-	const bs = 16
+	bs := common.FindECBBlockSize(func(b []byte) []byte {
+		return encrypt(string(b))
+	})
 
 	// Create a block containing "admin" followed by PKCS#7 padding.
 	addrLen := bs - len("email=")

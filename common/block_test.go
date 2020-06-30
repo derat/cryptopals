@@ -27,6 +27,32 @@ func TestPKCS7(t *testing.T) {
 	}
 }
 
+func TestFindECBBlockSize(t *testing.T) {
+	const key = "YELLOW SUBMARINE"
+
+	for _, tc := range []struct {
+		pre, suf string
+	}{
+		{"", ""},
+		{"1234", ""},
+		{"", "1234"},
+		{"12345678901234567890", ""},
+		{"", "12345678901234567890"},
+		{"12345678901234567890", "12345678901234567890"},
+	} {
+		if bs := FindECBBlockSize(func(b []byte) []byte {
+			plain := make([]byte, 0, len(tc.pre)+len(b)+len(tc.suf))
+			plain = append(plain, []byte(tc.pre)...)
+			plain = append(plain, b...)
+			plain = append(plain, []byte(tc.suf)...)
+			return EncryptAES(plain, []byte(key), nil)
+		}); bs != 16 {
+			t.Errorf("FindECBBlockSize() with prefix %q and suffix %q = %v; want 16",
+				tc.pre, tc.suf, bs)
+		}
+	}
+}
+
 func TestAES_ECB(t *testing.T) {
 	const (
 		key   = "YELLOW SUBMARINE"

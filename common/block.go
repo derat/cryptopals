@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"crypto/aes"
 	"fmt"
 )
@@ -24,6 +25,41 @@ func UnpadPKCS7(b []byte) []byte {
 	}
 	np := b[len(b)-1]
 	return b[:len(b)-int(np)]
+}
+
+// EncryptFunc encrypts the supplied buffer.
+// An additional prefix and/or suffix may be applied.
+// The same prefix, suffix, and key are used every time.
+type EncryptFunc func(b []byte) []byte
+
+// FindECBBlockSize infers the block size used by f.
+func FindECBBlockSize(f EncryptFunc) int {
+	const (
+		bufLen       = 1024
+		minBlockSize = 4
+		maxBlockSize = bufLen / 4
+	)
+
+	enc := f(bytes.Repeat([]byte{'A'}, bufLen))
+
+	for bs := minBlockSize; bs <= maxBlockSize; bs++ {
+		numNeeded := bufLen/bs - 2 // first or last may be misaligned
+		var prevBlock []byte       // last block that was seen
+		blockCount := 0            // consecutive occurrences of prevBlock
+		for start := 0; start+bs < len(enc); start += bs {
+			bl := enc[start : start+bs]
+			if prevBlock == nil || !bytes.Equal(bl, prevBlock) {
+				prevBlock = bl
+				blockCount = 0
+			} else {
+				blockCount++
+				if blockCount >= numNeeded {
+					return bs
+				}
+			}
+		}
+	}
+	panic("couldn't find block size")
 }
 
 // EncryptAES encrypts b using AES-128 with the supplied key.

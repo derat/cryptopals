@@ -34,17 +34,7 @@ func encrypt(b []byte) []byte {
 }
 
 func main() {
-	var bs int
-	for i := 1; i < 32; i++ {
-		enc := encrypt(bytes.Repeat([]byte{'A'}, 2*i))
-		if bytes.Equal(enc[0:i], enc[i:2*i]) {
-			bs = i
-			break
-		}
-	}
-	if bs == 0 {
-		panic("failed determining block size")
-	}
+	bs := common.FindECBBlockSize(encrypt)
 	fmt.Println("Using ECB with block size", bs)
 
 	// Add characters until we see another block get added as padding.
