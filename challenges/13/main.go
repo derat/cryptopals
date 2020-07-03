@@ -40,34 +40,21 @@ func decrypt(enc []byte) (map[string]string, error) {
 }
 
 func main() {
-	bs := common.FindECBBlockSize(func(b []byte) []byte {
-		return encrypt(string(b))
-	})
+	f := func(b []byte) []byte { return encrypt(string(b)) }
+	bs := common.FindECBBlockSize(f)
+	pl := common.FindECBPrefixLen(f, bs)
+	sl := common.FindECBSuffixLen(f, bs)
+	fmt.Printf("Prefix length is %v, suffix is %v\n", pl, sl)
 
 	// Create a block containing "admin" followed by PKCS#7 padding.
-	addrLen := bs - len("email=")
+	addrLen := bs - pl
 	buf := append(bytes.Repeat([]byte{'A'}, addrLen), common.PadPKCS7([]byte("admin"), bs)...)
 	enc := encrypt(string(buf))
 	adminBlock := enc[bs:]
 
 	// Figure out how long the address needs to be to push the role value to the beginning of a block.
-	addrLen = -1
-	var lastEnc []byte
-	for i := 0; i <= 2*bs; i++ {
-		enc := encrypt(strings.Repeat("A", i))
-		if lastEnc != nil && len(enc) > len(lastEnc) {
-			// There's always at least one byte of padding: when we fill the
-			// last block, then we get a new block entirely filled with padding.
-			// We want to push the length four bytes more so that "user" gets
-			// pushed to the start of the final block.
-			addrLen = i + 3 // TODO: Why does this need to be 3 rather than 4?
-			break
-		}
-		lastEnc = enc
-	}
-	if addrLen < 0 {
-		panic("failed finding address length")
-	}
+	// In other words, we want the last four bytes of the suffix ("user") to be at the start of a block.
+	addrLen = bs - ((pl + sl - 4) % bs)
 	fmt.Printf("Address length is %v\n", addrLen)
 
 	// Generate an encrypted buffer and overwrite "user" with "admin".

@@ -36,15 +36,7 @@ func encrypt(b []byte) []byte {
 func main() {
 	bs := common.FindECBBlockSize(encrypt)
 	fmt.Println("Using ECB with block size", bs)
-
-	// Add characters until we see another block get added as padding.
-	secretLen := len(encrypt(nil))
-	for i := 1; ; i++ {
-		if el := len(encrypt(bytes.Repeat([]byte{'A'}, i))); el > secretLen {
-			secretLen -= i
-			break
-		}
-	}
+	secretLen := common.FindECBSuffixLen(encrypt, bs)
 	fmt.Println("Secret text has length", secretLen)
 
 	/*
