@@ -4,7 +4,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/derat/cryptopals/common"
@@ -48,27 +47,18 @@ func main() {
 	pl := common.PrefixLen(f, bs)
 	fmt.Printf("Prefix length is %v\n", pl)
 
-	pad := common.A(pl % bs)                 // pad out the first modifiable block
-	b := append(pad, common.A(bs)...)        // add a full block for flipping bits
-	b = append(b, []byte("_admin_true_")...) // finally, add a target block
+	pad := common.A(pl % bs)                          // pad out the first modifiable block
+	b := append(pad, common.A(bs)...)                 // add a full block for flipping bits
+	b = append(b, []byte("\x00admin\x00true\x00")...) // finally, add a target block
 	enc := encrypt(string(b))
 
-	off := pl + len(pad) // bit-flipping offset
-
-	// Now try all combinations of the target bytes in the preceding block to get the
-	// characters that would be escaped.
-	for i := 0; i < 256; i++ {
-		enc[off] = byte(i) // first ';'
-		for j := 0; j < 256; j++ {
-			enc[off+6] = byte(j) // '='
-			for k := 0; k < 256; k++ {
-				enc[off+11] = byte(k) // second ';'
-				if a := admin(enc); a {
-					fmt.Printf("Got admin with i=%d, j=%d, k=%d!\n", i, j, k)
-					os.Exit(0)
-				}
-			}
-		}
+	bo := pl + len(pad) // bit-flipping offset
+	enc[bo] ^= ';'
+	enc[bo+6] ^= '='
+	enc[bo+11] ^= ';'
+	if a := admin(enc); a {
+		fmt.Println("Got admin!")
+	} else {
+		fmt.Println("Didn't get admin. :-(")
 	}
-	fmt.Println("Didn't get admin. :-(")
 }
