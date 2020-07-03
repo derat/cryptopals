@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/derat/cryptopals/common"
-	"github.com/derat/cryptopals/common/ecb"
 )
 
 var key []byte = common.RandBytes(16) // fixed key
@@ -42,9 +41,9 @@ func decrypt(enc []byte) (map[string]string, error) {
 
 func main() {
 	f := func(b []byte) []byte { return encrypt(string(b)) }
-	bs := ecb.BlockSize(f)
-	pl := ecb.PrefixLen(f, bs)
-	sl := ecb.SuffixLen(f, bs)
+	bs := common.BlockSizeECB(f)
+	pl := common.PrefixLen(f, bs)
+	sl := common.SuffixLen(f, bs)
 	fmt.Printf("Prefix length is %v, suffix is %v\n", pl, sl)
 
 	// Create a block containing "admin" followed by PKCS#7 padding.

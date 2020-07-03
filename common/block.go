@@ -61,6 +61,58 @@ func BlockString(b []byte, bs int) string {
 	return strings.Join(s, " ")
 }
 
+// FirstModBlock returns the index of the first modifiable block for f,
+// an ECB or CBC function with a fixed key and fixed prefix.
+func FirstModBlock(f EncryptFunc, bs int) int {
+	a := f(A(bs))
+	b := f(B(bs))
+	for i := 0; i*bs < len(a); i++ {
+		// The first block that differs is the first one that we can modify.
+		if !bytes.Equal(a[i*bs:(i+1)*bs], b[i*bs:(i+1)*bs]) {
+			return i
+		}
+	}
+	panic("couldn't find modifiable block")
+}
+
+// FixedLen returns the combined length of a fixed prefix and suffix used by f,
+// an ECB or CBC function with a fixed key.
+func FixedLen(f EncryptFunc, bs int) int {
+	base := len(f(nil))
+	for i := 1; ; i++ {
+		if n := len(f(A(i))); n > base {
+			return base - i
+		}
+	}
+}
+
+// PrefixLen returns the length of the fixed prefix used by f,
+// an ECB or CBC function with a fixed key.
+func PrefixLen(f EncryptFunc, bs int) int {
+	start := FirstModBlock(f, bs) * bs
+	end := start + bs
+
+	// Figure out what the modifiable block looks like when its remaining bytes
+	// are filled with our own characters.
+	a := f(A(bs))[start:end]
+	b := f(B(bs))[start:end]
+
+	// Add bytes until we see the expected blocks.
+	for i := 0; i < bs; i++ {
+		if bytes.Equal(f(A(i + 1))[start:end], a) &&
+			bytes.Equal(f(B(i + 1))[start:end], b) {
+			return end - i - 1
+		}
+	}
+	panic("couldn't find prefix length")
+}
+
+// SuffixLen returns the length of the fixed suffix used by f,
+// an ECB or CBC function with a fixed key.
+func SuffixLen(f EncryptFunc, bs int) int {
+	return FixedLen(f, bs) - PrefixLen(f, bs)
+}
+
 // EncryptFunc encrypts the supplied buffer.
 // An additional prefix and/or suffix may be applied.
 // The same prefix, suffix, and key are used every time.
@@ -80,27 +132,27 @@ func EncryptAES(b, key, iv []byte) []byte {
 	}
 	prev := iv
 
+	plain := PadPKCS7(b, bs)
+
 	var enc []byte
-	for i := 0; i < len(b); i += bs {
+	for i := 0; i < len(plain); i += bs {
 		// Get the source block, padding it if needed.
 		n := bs
-		if rem := len(b) - i; rem < bs {
+		if rem := len(plain) - i; rem < bs {
 			n = rem
 		}
-		src := PadPKCS7(b[i:i+n], bs)
+		src := plain[i : i+n]
 
-		// XOR with the previous ciphertext block (or the initialization vector).
+		// If using CBC, XOR with the previous ciphertext block (or the initialization vector).
 		if iv != nil {
 			src = XOR(src, prev)
 		}
 
-		// Encrypt the block and save it to XOR against the next plaintext block.
+		// Encrypt the block and save it to XOR against the next plaintext block (for CBC).
 		dst := make([]byte, bs)
 		cipher.Encrypt(dst, src)
 		enc = append(enc, dst...)
-		if iv != nil {
-			prev = dst
-		}
+		prev = dst
 	}
 	return enc
 }
@@ -131,9 +183,7 @@ func DecryptAES(enc, key, iv []byte) []byte {
 		}
 
 		dec = append(dec, dst[:n]...)
-		if iv != nil {
-			prev = src
-		}
+		prev = src
 	}
 	up, err := UnpadPKCS7(dec)
 	if err != nil {

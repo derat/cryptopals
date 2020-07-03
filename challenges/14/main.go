@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/derat/cryptopals/common"
-	"github.com/derat/cryptopals/common/ecb"
 )
 
 const secret = `Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
@@ -35,10 +34,10 @@ func encrypt(b []byte) []byte {
 }
 
 func main() {
-	bs := ecb.BlockSize(encrypt)
+	bs := common.BlockSizeECB(encrypt)
 	fmt.Println("Using ECB with block size", bs)
-	pl := ecb.PrefixLen(encrypt, bs)
-	sl := ecb.SuffixLen(encrypt, bs)
+	pl := common.PrefixLen(encrypt, bs)
+	sl := common.SuffixLen(encrypt, bs)
 	fmt.Printf("Prefix length is %v, suffix is %v\n", pl, sl)
 	pad := bs - (pl % bs)
 	fmt.Printf("Need %v byte(s) to start new block\n", pad)
@@ -51,7 +50,7 @@ func main() {
 
 	var known []byte
 	for len(known) < sl {
-		known = append(known, ecb.NextSuffixByte(f, bs, known))
+		known = append(known, common.NextSuffixByteECB(f, bs, known))
 	}
 	fmt.Printf("%q\n", known)
 }

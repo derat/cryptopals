@@ -44,6 +44,75 @@ func TestBlockString(t *testing.T) {
 	}
 }
 
+func TestBlock_Misc(t *testing.T) {
+	const (
+		key = "YELLOW SUBMARINE"
+		bs  = 16
+
+		almost = "123456789012345"
+		full   = "1234567890123456"
+		extra  = "12345678901234567"
+	)
+
+	for _, tc := range []struct {
+		pre, suf string
+	}{
+		{"", ""},
+		{"1", ""},
+		{"", "1"},
+		{"1", "1"},
+		{almost, ""},
+		{"", almost},
+		{almost, almost},
+		{full, ""},
+		{"", full},
+		{full, full},
+		{extra, ""},
+		{"", extra},
+		{extra, extra},
+		{"A", ""},
+		{"", "A"},
+		{"A", "A"},
+	} {
+		for _, iv := range [][]byte{nil, A(bs)} {
+			f := func(b []byte) []byte {
+				plain := make([]byte, 0, len(tc.pre)+len(b)+len(tc.suf))
+				plain = append(plain, []byte(tc.pre)...)
+				plain = append(plain, b...)
+				plain = append(plain, []byte(tc.suf)...)
+				return EncryptAES(plain, []byte(key), iv)
+			}
+
+			mode := "ECB"
+			if len(iv) > 0 {
+				mode = "CBC"
+			}
+
+			// We can only get the block size for ECB.
+			if len(iv) == 0 {
+				if got := BlockSizeECB(f); got != bs {
+					t.Errorf("%v BlockSize(%q...%q) = %v; want %v", mode, tc.pre, tc.suf, got, bs)
+				}
+			}
+
+			fb := len(tc.pre) / bs
+			if got := FirstModBlock(f, bs); got != fb {
+				t.Errorf("%v FirstModBlock(%q...%q) = %v; want %v", mode, tc.pre, tc.suf, got, fb)
+			}
+			fl := len(tc.pre) + len(tc.suf)
+			if got := FixedLen(f, bs); got != fl {
+				t.Errorf("%v FixedLen(%q...%q) = %v; want %v", mode, tc.pre, tc.suf, got, fl)
+			}
+			if got := PrefixLen(f, bs); got != len(tc.pre) {
+				t.Errorf("%v PrefixLen(%q...%q) = %v; want %v", mode, tc.pre, tc.suf, got, len(tc.pre))
+			}
+			if got := SuffixLen(f, bs); got != len(tc.suf) {
+				t.Errorf("%v SuffixLen(%q...%q) = %v; want %v", mode, tc.pre, tc.suf, got, len(tc.suf))
+			}
+		}
+	}
+}
+
 func TestAES_ECB(t *testing.T) {
 	const (
 		key   = "YELLOW SUBMARINE"

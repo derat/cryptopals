@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/derat/cryptopals/common"
-	"github.com/derat/cryptopals/common/ecb"
 )
 
 const secret = `Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
@@ -34,14 +33,14 @@ func encrypt(b []byte) []byte {
 }
 
 func main() {
-	bs := ecb.BlockSize(encrypt)
+	bs := common.BlockSizeECB(encrypt)
 	fmt.Println("Using ECB with block size", bs)
-	secretLen := ecb.SuffixLen(encrypt, bs)
+	secretLen := common.SuffixLen(encrypt, bs)
 	fmt.Println("Secret text has length", secretLen)
 
 	var known []byte
 	for len(known) < secretLen {
-		known = append(known, ecb.NextSuffixByte(encrypt, bs, known))
+		known = append(known, common.NextSuffixByteECB(encrypt, bs, known))
 	}
 	fmt.Printf("%q\n", known)
 }
