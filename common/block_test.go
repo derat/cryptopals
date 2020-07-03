@@ -21,7 +21,9 @@ func TestPKCS7(t *testing.T) {
 		if padded := PadPKCS7([]byte(tc.unpadded), tc.bs); !bytes.Equal(padded, []byte(tc.padded)) {
 			t.Errorf("PadPKCS7(%q, %d) = %q; want %q", tc.unpadded, tc.bs, padded, tc.padded)
 		}
-		if unpadded := UnpadPKCS7([]byte(tc.padded)); !bytes.Equal(unpadded, []byte(tc.unpadded)) {
+		if unpadded, err := UnpadPKCS7([]byte(tc.padded)); err != nil {
+			t.Errorf("UnpadPKCS7(%q) failed: %v", tc.padded, err)
+		} else if !bytes.Equal(unpadded, []byte(tc.unpadded)) {
 			t.Errorf("UnpadPKCS7(%q) = %q; want %q", tc.padded, unpadded, tc.unpadded)
 		}
 	}

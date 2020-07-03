@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -21,12 +22,20 @@ func PadPKCS7(b []byte, bs int) []byte {
 }
 
 // UnpadPKCS7 undoes padding added by PadPKCS7.
-func UnpadPKCS7(b []byte) []byte {
+func UnpadPKCS7(b []byte) ([]byte, error) {
 	if len(b) == 0 {
-		panic("Can't unpad empty buffer")
+		return nil, errors.New("can't unpad empty buffer")
 	}
-	np := b[len(b)-1]
-	return b[:len(b)-int(np)]
+	np := int(b[len(b)-1])
+	if np > len(b) {
+		return nil, fmt.Errorf("%v byte(s) of padding on %v-byte buffer", np, len(b))
+	}
+	for i := 0; i < np; i++ {
+		if idx := len(b) - i - 1; int(b[idx]) != np {
+			return nil, fmt.Errorf("%v byte(s) of padding but byte %d is %v", np, idx, b[idx])
+		}
+	}
+	return b[:len(b)-np], nil
 }
 
 // A returns a buffer containing the byte 'A' repeated n times.
@@ -126,5 +135,9 @@ func DecryptAES(enc, key, iv []byte) []byte {
 			prev = src
 		}
 	}
-	return UnpadPKCS7(dec)
+	up, err := UnpadPKCS7(dec)
+	if err != nil {
+		panic(fmt.Sprintf("failed removing padding: %v", err))
+	}
+	return up
 }
