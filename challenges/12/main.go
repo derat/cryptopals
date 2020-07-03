@@ -2,11 +2,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 
 	"github.com/derat/cryptopals/common"
+	"github.com/derat/cryptopals/common/ecb"
 )
 
 const secret = `Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg
@@ -34,52 +34,14 @@ func encrypt(b []byte) []byte {
 }
 
 func main() {
-	bs := common.FindECBBlockSize(encrypt)
+	bs := ecb.BlockSize(encrypt)
 	fmt.Println("Using ECB with block size", bs)
-	secretLen := common.FindECBSuffixLen(encrypt, bs)
+	secretLen := ecb.SuffixLen(encrypt, bs)
 	fmt.Println("Secret text has length", secretLen)
-
-	/*
-	  With a block size of 4:
-	  ''      -> AAAx (pad=3, block=0)
-	  '1'     -> AA1x (pad=2, block=0)
-	  '12'    -> A12x (pad=1, block=0)
-	  '123'   -> 123x (pad=0, block=0)
-	  '1234'  -> AAA1 234x (pad=3, block=1)
-	  '12345' -> AA12 345x (pad=2, block=1)
-	  ...
-	*/
-	findNext := func(known []byte) byte {
-		// Insert padding so the secret byte ends up being the last byte in a block.
-		numPad := 0
-		for (len(known)+numPad+1)%bs != 0 {
-			numPad++
-		}
-
-		// Get the encrypted block ending in the byte that we want.
-		pad := bytes.Repeat([]byte{'A'}, numPad)
-		enc := encrypt(pad)
-		start := (len(pad) + len(known)) / bs * bs
-		target := enc[start : start+bs]
-
-		// Now get the plaintext that produced the encrypted block.
-		// We know all of this except for its final byte.
-		plain := make([]byte, bs)
-		copy(plain, append(pad, known...)[start:])
-
-		// Figure out what the last byte is.
-		for i := 0; i < 256; i++ {
-			plain[len(plain)-1] = byte(i)
-			if enc := encrypt(plain); bytes.Equal(enc[:bs], target) {
-				return byte(i)
-			}
-		}
-		panic("didn't find next byte")
-	}
 
 	var known []byte
 	for len(known) < secretLen {
-		known = append(known, findNext(known))
+		known = append(known, ecb.NextSuffixByte(encrypt, bs, known))
 	}
 	fmt.Printf("%q\n", known)
 }

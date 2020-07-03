@@ -42,69 +42,6 @@ func TestBlockString(t *testing.T) {
 	}
 }
 
-func TestFindECB(t *testing.T) {
-	const (
-		key = "YELLOW SUBMARINE"
-		bs  = 16
-
-		almost = "123456789012345"
-		full   = "1234567890123456"
-		extra  = "12345678901234567"
-	)
-
-	for _, tc := range []struct {
-		pre, suf string
-	}{
-		{"", ""},
-		{"1", ""},
-		{"", "1"},
-		{"1", "1"},
-		{almost, ""},
-		{"", almost},
-		{almost, almost},
-		{full, ""},
-		{"", full},
-		{full, full},
-		{extra, ""},
-		{"", extra},
-		{extra, extra},
-		{"A", ""},
-		{"", "A"},
-		{"A", "A"},
-	} {
-		f := func(b []byte) []byte {
-			plain := make([]byte, 0, len(tc.pre)+len(b)+len(tc.suf))
-			plain = append(plain, []byte(tc.pre)...)
-			plain = append(plain, b...)
-			plain = append(plain, []byte(tc.suf)...)
-			return EncryptAES(plain, []byte(key), nil)
-		}
-
-		if got := FindECBBlockSize(f); got != bs {
-			t.Errorf("FindECBBlockSize() with prefix %q and suffix %q = %v; want %v",
-				tc.pre, tc.suf, got, bs)
-		}
-		fb := len(tc.pre) / bs
-		if got := FindECBFirstModBlock(f, bs); got != fb {
-			t.Errorf("FindECBFirstModBlock() with prefix %q and suffix %q = %v; want %v",
-				tc.pre, tc.suf, got, fb)
-		}
-		fl := len(tc.pre) + len(tc.suf)
-		if got := FindECBFixedLen(f, bs); got != fl {
-			t.Errorf("FindECBFixedLen() with prefix %q and suffix %q = %v; want %v",
-				tc.pre, tc.suf, got, fl)
-		}
-		if got := FindECBPrefixLen(f, bs); got != len(tc.pre) {
-			t.Errorf("FindECBPrefixLen() with prefix %q and suffix %q = %v; want %v",
-				tc.pre, tc.suf, got, len(tc.pre))
-		}
-		if got := FindECBSuffixLen(f, bs); got != len(tc.suf) {
-			t.Errorf("FindECBSuffixLen() with prefix %q and suffix %q = %v; want %v",
-				tc.pre, tc.suf, got, len(tc.suf))
-		}
-	}
-}
-
 func TestAES_ECB(t *testing.T) {
 	const (
 		key   = "YELLOW SUBMARINE"
