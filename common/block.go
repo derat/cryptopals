@@ -27,7 +27,7 @@ func UnpadPKCS7(b []byte) ([]byte, error) {
 		return nil, errors.New("can't unpad empty buffer")
 	}
 	np := int(b[len(b)-1])
-	if np > len(b) {
+	if np == 0 || np > len(b) {
 		return nil, fmt.Errorf("%v byte(s) of padding on %v-byte buffer", np, len(b))
 	}
 	for i := 0; i < np; i++ {

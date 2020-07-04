@@ -29,6 +29,20 @@ func TestPKCS7(t *testing.T) {
 	}
 }
 
+func TestUnpadPKCS7_Invalid(t *testing.T) {
+	for _, s := range []string{
+		"1234567\x00",                  // need at least one byte of padding
+		"",                             // empty buffers are invalid
+		"\x12",                         // buffer isn't large enough
+		"ICE ICE BABY\x05\x05\x05\x05", // from challenge 15
+		"ICE ICE BABY\x01\x02\x03\x04", // from challenge 15
+	} {
+		if _, err := UnpadPKCS7([]byte(s)); err == nil {
+			t.Errorf("UnpadPKCS7(%q) unexpectedly reported success", s)
+		}
+	}
+}
+
 func TestBlockString(t *testing.T) {
 	const bs = 4
 	for _, tc := range []struct {
