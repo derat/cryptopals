@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
@@ -152,5 +153,33 @@ func TestAES_CBC(t *testing.T) {
 	dec := DecryptAES(enc, []byte(key), []byte(iv))
 	if !bytes.Equal(dec, padded) {
 		t.Fatalf("Decrypted %q; want %q", dec, padded)
+	}
+}
+
+func TestCTR(t *testing.T) {
+	const (
+		key   = "YELLOW SUBMARINE"
+		nonce = 123
+	)
+
+	for _, plain := range []string{
+		"",
+		"123456789",              // less than a block
+		"1234567890123456",       // exactly one block
+		"Here is the plaintext!", // more than a block
+	} {
+		ctr := NewCTR([]byte(key), nonce)
+		var enc bytes.Buffer
+		if err := ctr.Process(strings.NewReader(plain), &enc); err != nil {
+			t.Errorf("Encrypting %q failed: %v", plain, err)
+			continue
+		}
+		ctr.Reset()
+		var dec bytes.Buffer
+		if err := ctr.Process(&enc, &dec); err != nil {
+			t.Errorf("Decrypting %q failed: %v", plain, err)
+		} else if dec.String() != plain {
+			t.Errorf("Decrypted %q to %q", plain, dec.String())
+		}
 	}
 }

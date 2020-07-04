@@ -3,9 +3,11 @@ package common
 import (
 	"bytes"
 	"crypto/aes"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -188,4 +190,55 @@ func DecryptAES(enc, key, iv []byte) []byte {
 		prev = src
 	}
 	return dec
+}
+
+// CTR implements AES in CTR mode.
+type CTR struct {
+	key           []byte
+	nonce, blocks uint64
+}
+
+func NewCTR(key []byte, nonce uint64) *CTR {
+	return &CTR{key, nonce, 0}
+}
+
+// Reset resets c's block counter to 0.
+func (c *CTR) Reset() {
+	c.blocks = 0
+}
+
+// Next returns the next 16-byte keystream block.
+// The caller should XOR this against the corresponding block of plaintext or ciphertext.
+func (c *CTR) Next() []byte {
+	var b bytes.Buffer
+	b.Grow(16)
+	binary.Write(&b, binary.LittleEndian, &c.nonce)
+	binary.Write(&b, binary.LittleEndian, &c.blocks)
+	ks := EncryptAES(b.Bytes(), c.key, nil)
+	c.blocks++
+	return ks
+}
+
+// Process reads from r until EOF and writes encrypted or unencrypted data to w.
+func (c *CTR) Process(r io.Reader, w io.Writer) error {
+	for {
+		b := make([]byte, 16)
+		done := false
+		n, err := io.ReadFull(r, b)
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			b = b[:n]
+			done = true
+		} else if err != nil {
+			return err
+		}
+
+		if len(b) > 0 {
+			if _, err := w.Write(XOR(b, c.Next())); err != nil {
+				return err
+			}
+		}
+		if done {
+			return nil
+		}
+	}
 }
