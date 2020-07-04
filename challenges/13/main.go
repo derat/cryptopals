@@ -32,11 +32,17 @@ func profileFor(email string) string {
 }
 
 func encrypt(email string) []byte {
-	return common.EncryptAES([]byte(profileFor(email)), key, nil)
+	plain := common.PadPKCS7([]byte(profileFor(email)), 16)
+	return common.EncryptAES(plain, key, nil)
 }
 
 func decrypt(enc []byte) (map[string]string, error) {
-	return parseKeyVals(string(common.DecryptAES(enc, key, nil)))
+	padded := common.DecryptAES(enc, key, nil)
+	plain, err := common.UnpadPKCS7(padded)
+	if err != nil {
+		return nil, err
+	}
+	return parseKeyVals(string(plain))
 }
 
 func main() {

@@ -94,7 +94,8 @@ func TestBlock_Misc(t *testing.T) {
 				plain = append(plain, []byte(tc.pre)...)
 				plain = append(plain, b...)
 				plain = append(plain, []byte(tc.suf)...)
-				return EncryptAES(plain, []byte(key), iv)
+				padded := PadPKCS7(plain, bs)
+				return EncryptAES(padded, []byte(key), iv)
 			}
 
 			mode := "ECB"
@@ -132,10 +133,11 @@ func TestAES_ECB(t *testing.T) {
 		key   = "YELLOW SUBMARINE"
 		plain = "This is the plaintext. It's more than a single block long."
 	)
-	enc := EncryptAES([]byte(plain), []byte(key), nil)
+	padded := PadPKCS7([]byte(plain), 16)
+	enc := EncryptAES(padded, []byte(key), nil)
 	dec := DecryptAES(enc, []byte(key), nil)
-	if string(dec) != plain {
-		t.Fatalf("Decrypted %q; want %q", dec, plain)
+	if !bytes.Equal(dec, padded) {
+		t.Fatalf("Decrypted %q; want %q", dec, padded)
 	}
 }
 
@@ -145,9 +147,10 @@ func TestAES_CBC(t *testing.T) {
 		key   = "YELLOW SUBMARINE"
 		iv    = "1234567890123456"
 	)
-	enc := EncryptAES([]byte(plain), []byte(key), []byte(iv))
+	padded := PadPKCS7([]byte(plain), 16)
+	enc := EncryptAES(padded, []byte(key), []byte(iv))
 	dec := DecryptAES(enc, []byte(key), []byte(iv))
-	if string(dec) != plain {
-		t.Fatalf("Decrypted %q; want %q", dec, plain)
+	if !bytes.Equal(dec, padded) {
+		t.Fatalf("Decrypted %q; want %q", dec, padded)
 	}
 }

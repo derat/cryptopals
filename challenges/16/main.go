@@ -22,12 +22,14 @@ func encrypt(s string) []byte {
 	s = strings.ReplaceAll(s, ";", "%3B")
 	s = strings.ReplaceAll(s, "=", "%3D")
 	plain := prefix + s + suffix
-	return common.EncryptAES([]byte(plain), key, iv) // pads input
+	padded := common.PadPKCS7([]byte(plain), 16)
+	return common.EncryptAES(padded, key, iv) // pads input
 }
 
 // admin decrypts b and returns true if the resulting string contains ";admin=true;".
 func admin(b []byte) bool {
-	return bytes.Contains(common.DecryptAES(b, key, iv), []byte(";admin=true;"))
+	padded := common.DecryptAES(b, key, iv)
+	return bytes.Contains(padded, []byte(";admin=true;"))
 }
 
 func main() {

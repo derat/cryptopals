@@ -30,18 +30,14 @@ func encrypt() (enc, iv []byte) {
 	if err != nil {
 		panic(fmt.Sprintf("Failed decoding %q: %v", bs, err))
 	}
-	return common.EncryptAES([]byte(s), key, initVec), initVec
+	padded := common.PadPKCS7([]byte(s), 16)
+	return common.EncryptAES(padded, key, initVec), initVec
 }
 
 func checkPadding(enc []byte) (valid bool) {
-	valid = true
-	defer func() {
-		if r := recover(); r != nil {
-			valid = false
-		}
-	}()
-	common.DecryptAES(enc, key, initVec)
-	return
+	padded := common.DecryptAES(enc, key, initVec)
+	_, err := common.UnpadPKCS7(padded)
+	return err == nil
 }
 
 func decryptByte(enc, iv []byte, bs int, known []byte) byte {

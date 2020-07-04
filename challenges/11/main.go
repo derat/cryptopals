@@ -17,6 +17,7 @@ func encrypt(b []byte) []byte {
 	plain = append(plain, pre...)
 	plain = append(plain, b...)
 	plain = append(plain, suf...)
+	plain = common.PadPKCS7(plain, 16)
 
 	var iv []byte
 	if common.RandInt(2) == 1 {

@@ -30,6 +30,7 @@ func encrypt(b []byte) []byte {
 	plain = append(plain, randomPrefix...)
 	plain = append(plain, b...)
 	plain = append(plain, secretDec...)
+	plain = common.PadPKCS7(plain, 16)
 	return common.EncryptAES(plain, key, nil)
 }
 

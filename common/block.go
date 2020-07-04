@@ -132,16 +132,18 @@ func EncryptAES(b, key, iv []byte) []byte {
 	}
 	prev := iv
 
-	plain := PadPKCS7(b, bs)
+	if len(b)%bs != 0 {
+		panic(fmt.Sprintf("buffer size %v isn't multiple of block size %v", len(b), bs))
+	}
 
 	var enc []byte
-	for i := 0; i < len(plain); i += bs {
+	for i := 0; i < len(b); i += bs {
 		// Get the source block, padding it if needed.
 		n := bs
-		if rem := len(plain) - i; rem < bs {
+		if rem := len(b) - i; rem < bs {
 			n = rem
 		}
-		src := plain[i : i+n]
+		src := b[i : i+n]
 
 		// If using CBC, XOR with the previous ciphertext block (or the initialization vector).
 		if iv != nil {
@@ -185,9 +187,5 @@ func DecryptAES(enc, key, iv []byte) []byte {
 		dec = append(dec, dst[:n]...)
 		prev = src
 	}
-	up, err := UnpadPKCS7(dec)
-	if err != nil {
-		panic(fmt.Sprintf("failed removing padding: %v", err))
-	}
-	return up
+	return dec
 }
