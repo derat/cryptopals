@@ -88,6 +88,7 @@ func (s *Score) Better(o *Score) bool {
 	if o == nil {
 		return true
 	}
+
 	if s.Chars > o.Chars {
 		return true
 	} else if o.Chars > s.Chars {
@@ -104,8 +105,8 @@ func EnglishScore(b []byte) Score {
 		return s
 	}
 
-	for _, ch := range b {
-		r := rune(ch)
+	// Casting to string here is important so that we iterate over runes rather than bytes.
+	for _, r := range string(b) {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
 			s.Chars++
 		}
