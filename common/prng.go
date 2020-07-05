@@ -58,8 +58,8 @@ func (m *MT) twist() {
 }
 
 // NewMT19937 returns a new MT using the Mersenne prime 2^19937−1.
-func NewMT19937(seed int) *MT {
-	return newMT(&mt19937Params, uint64(seed))
+func NewMT19937(seed uint64) *MT {
+	return newMT(&mt19937Params, seed)
 }
 
 // Parameter values are listed at https://en.wikipedia.org/wiki/Mersenne_Twister.

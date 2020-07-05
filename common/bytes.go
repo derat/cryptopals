@@ -76,11 +76,16 @@ func RandBytes(n int) []byte {
 	return b
 }
 
-// RandInt returns a cryptographically-secure random integer in the range [0, n).
-func RandInt(max int) int {
-	v, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+// RandInt64 returns a cryptographically-secure random integer in the range [0, n).
+func RandInt64(max int64) int64 {
+	v, err := rand.Int(rand.Reader, big.NewInt(max))
 	if err != nil {
 		panic(err)
 	}
-	return int(v.Int64())
+	return v.Int64()
+}
+
+// RandInt returns a cryptographically-secure random integer in the range [0, n).
+func RandInt(max int) int {
+	return int(RandInt64(int64(max)))
 }
