@@ -39,3 +39,26 @@ func ReadHexLines(p string) [][]byte {
 	}
 	return bufs
 }
+
+// ReadHexLines reads and decodes base64 lines from p.
+func ReadBase64Lines(p string) [][]byte {
+	f, err := os.Open(p)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	var bufs [][]byte
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		dec, err := base64.StdEncoding.DecodeString(sc.Text())
+		if err != nil {
+			panic(err)
+		}
+		bufs = append(bufs, dec)
+	}
+	if sc.Err() != nil {
+		panic(err)
+	}
+	return bufs
+}

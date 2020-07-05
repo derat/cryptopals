@@ -107,7 +107,7 @@ func EnglishScore(b []byte) Score {
 
 	// Casting to string here is important so that we iterate over runes rather than bytes.
 	for _, r := range string(b) {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) || unicode.IsPunct(r) {
 			s.Chars++
 		}
 	}

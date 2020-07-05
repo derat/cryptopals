@@ -74,7 +74,6 @@ func main() {
 
 	maxLen := 0
 	for _, enc := range encs {
-		//fmt.Println(common.BlockString(enc, 16))
 		if len(enc) > maxLen {
 			maxLen = len(enc)
 		}
@@ -82,59 +81,53 @@ func main() {
 
 	decs := make([][]byte, len(encs))
 
+	// Whoops, I think I accidentally used the approach from Challenge 20 here.
+	// Reading online afterwords, it sounds like many people just skipped this challenge
+	// and went to number 20. What's the point of doing this manually just to see how much it sucks?
 	for i := 0; i < maxLen; i++ {
-		var bestScore *common.Score
-		var bestXor byte
-
 		buf := make([]byte, 0, len(encs)) // bytes at position i across all ciphertexts
-		for xor := 0; xor < 256; xor++ {
-			buf = buf[:0] // preserve allocation
-			for _, enc := range encs {
-				if i < len(enc) {
-					buf = append(buf, enc[i]^byte(xor))
-				}
-			}
-			if sc := common.EnglishScore(buf); sc.Better(bestScore) {
-				bestScore = &sc
-				bestXor = byte(xor)
+		for _, enc := range encs {
+			if i < len(enc) {
+				buf = append(buf, enc[i])
 			}
 		}
+		xor := common.SingleByteXOR(buf)
 
 		// When the cross-section consists only of letters, common.EnglishScore can't tell
 		// whether they should be lowercase or upper case. It also has trouble with the later
 		// bytes, where there's less data due to some of the lines being short. Hardcode some
 		// trickier bytes that I determined manually by looking at the automated results.
 		if i == 0 {
-			bestXor = encs[0][i] ^ 'I'
+			xor = encs[0][i] ^ 'I'
 		} else if i == 7 {
-			bestXor = encs[0][i] ^ 'm'
+			xor = encs[0][i] ^ 'm'
 		} else if i == 25 {
-			bestXor = encs[5][i] ^ 'd'
+			xor = encs[5][i] ^ 'd'
 		} else if i == 28 {
-			bestXor = encs[33][i] ^ 't'
+			xor = encs[33][i] ^ 't'
 		} else if i == 29 {
-			bestXor = encs[35][i] ^ 't'
+			xor = encs[35][i] ^ 't'
 		} else if i == 30 {
-			bestXor = encs[6][i] ^ 'i'
+			xor = encs[6][i] ^ 'i'
 		} else if i == 31 {
-			bestXor = encs[6][i] ^ 'd'
+			xor = encs[6][i] ^ 'd'
 		} else if i == 32 {
-			bestXor = encs[27][i] ^ 'd'
+			xor = encs[27][i] ^ 'd'
 		} else if i == 33 {
-			bestXor = encs[4][i] ^ 'e'
+			xor = encs[4][i] ^ 'e'
 		} else if i == 34 {
-			bestXor = encs[4][i] ^ 'a'
+			xor = encs[4][i] ^ 'a'
 		} else if i == 35 {
-			bestXor = encs[4][i] ^ 'd'
+			xor = encs[4][i] ^ 'd'
 		} else if i == 36 {
-			bestXor = encs[37][i] ^ 'n'
+			xor = encs[37][i] ^ 'n'
 		} else if i == 37 {
-			bestXor = encs[37][i] ^ ','
+			xor = encs[37][i] ^ ','
 		}
 
 		for j, enc := range encs {
 			if i < len(enc) {
-				decs[j] = append(decs[j], enc[i]^bestXor)
+				decs[j] = append(decs[j], enc[i]^xor)
 			}
 		}
 	}
@@ -142,5 +135,4 @@ func main() {
 	for _, dec := range decs {
 		fmt.Printf("%q\n", dec)
 	}
-
 }
