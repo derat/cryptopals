@@ -183,3 +183,42 @@ func TestCTR(t *testing.T) {
 		}
 	}
 }
+
+func TestCTR_MultipleWrites(t *testing.T) {
+	const (
+		key   = "YELLOW SUBMARINE"
+		nonce = 123
+	)
+
+	// Check that we properly save unused portions of the keystream to use
+	// in later writes.
+	chunks := []string{
+		"",
+		"This is short,",
+		" while this spans a couple of different blocks of the keystream. ",
+		"Now ",
+		"let's ",
+		"throw ",
+		"in ",
+		"some ",
+		"more ",
+		"short ",
+		"writes.",
+	}
+
+	ctr := NewCTR([]byte(key), nonce)
+	var enc bytes.Buffer
+	for _, ch := range chunks {
+		if err := ctr.Process(strings.NewReader(ch), &enc); err != nil {
+			t.Fatalf("Encrypting %q failed: %v", ch, err)
+		}
+	}
+
+	ctr.Reset()
+	var dec bytes.Buffer
+	if err := ctr.Process(&enc, &dec); err != nil {
+		t.Errorf("Decrypting failed: %v", err)
+	} else if full := strings.Join(chunks, ""); dec.String() != full {
+		t.Errorf("Decrypted to %q; want %q", dec.String(), full)
+	}
+}

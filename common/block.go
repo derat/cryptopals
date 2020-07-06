@@ -196,49 +196,56 @@ func DecryptAES(enc, key, iv []byte) []byte {
 type CTR struct {
 	key           []byte
 	nonce, blocks uint64
+	ks            []byte // next portion of keystream
 }
 
 func NewCTR(key []byte, nonce uint64) *CTR {
-	return &CTR{key, nonce, 0}
+	return &CTR{key: key, nonce: nonce}
 }
 
 // Reset resets c's block counter to 0.
 func (c *CTR) Reset() {
 	c.blocks = 0
+	c.ks = nil
 }
 
-// Next returns the next 16-byte keystream block.
-// The caller should XOR this against the corresponding block of plaintext or ciphertext.
-func (c *CTR) Next() []byte {
-	var b bytes.Buffer
-	b.Grow(16)
-	binary.Write(&b, binary.LittleEndian, &c.nonce)
-	binary.Write(&b, binary.LittleEndian, &c.blocks)
-	ks := EncryptAES(b.Bytes(), c.key, nil)
-	c.blocks++
-	return ks
+// keystream returns the next n bytes from the keystream.
+func (c *CTR) keystream(n int) []byte {
+	b := make([]byte, n)
+	off := 0
+
+	for off < n {
+		if len(c.ks) > 0 {
+			copied := copy(b[off:], c.ks)
+			off += copied
+			c.ks = c.ks[copied:]
+		} else {
+			var buf bytes.Buffer
+			buf.Grow(16)
+			binary.Write(&buf, binary.LittleEndian, &c.nonce)
+			binary.Write(&buf, binary.LittleEndian, &c.blocks)
+			c.ks = EncryptAES(buf.Bytes(), c.key, nil)
+			c.blocks++
+		}
+	}
+	return b
 }
 
 // Process reads from r until EOF and writes encrypted or unencrypted data to w.
 func (c *CTR) Process(r io.Reader, w io.Writer) error {
+	b := make([]byte, 2048)
 	for {
-		b := make([]byte, 16)
-		done := false
-		n, err := io.ReadFull(r, b)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			b = b[:n]
-			done = true
-		} else if err != nil {
-			return err
-		}
-
-		if len(b) > 0 {
-			if _, err := w.Write(XOR(b, c.Next())); err != nil {
+		n, rerr := r.Read(b)
+		if n > 0 {
+			ks := c.keystream(n)
+			if _, err := w.Write(XOR(b[:n], ks)); err != nil {
 				return err
 			}
 		}
-		if done {
+		if rerr == io.EOF {
 			return nil
+		} else if rerr != nil {
+			return rerr
 		}
 	}
 }
