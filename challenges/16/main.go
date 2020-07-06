@@ -27,7 +27,7 @@ func encrypt(s string) []byte {
 	s = strings.ReplaceAll(s, "=", "%3D")
 	plain := prefix + s + suffix
 	padded := common.PadPKCS7([]byte(plain), 16)
-	return common.EncryptAES(padded, key, iv) // pads input
+	return common.EncryptAES(padded, key, iv)
 }
 
 // admin decrypts b and returns true if the resulting string contains ";admin=true;".
