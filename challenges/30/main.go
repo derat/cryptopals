@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-// Break a SHA-1 keyed MAC using length extension
+// Break an MD4 keyed MAC using length extension
 package main
 
 import (
@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/derat/cryptopals/common"
-	"github.com/derat/cryptopals/sha1"
+	"github.com/derat/cryptopals/md4"
 )
 
 var key []byte    // randomly chosen from /usr/share/dict/words
@@ -23,11 +23,13 @@ func init() {
 	maxKeyLen = ml
 }
 
-// sign prepends the secret key to msg and returns a SHA1 hash of the resulting buffer.
+// sign prepends the secret key to msg and returns an MD4 hash of the resulting buffer.
 func sign(msg []byte) []byte {
 	concat := append([]byte{}, key...)
 	concat = append(concat, msg...)
-	mac := sha1.Sum(concat)
+	h := md4.New()
+	h.Write(concat)
+	mac := h.Sum(nil)
 	return mac[:]
 }
 
@@ -37,17 +39,17 @@ func verify(msg, mac []byte) bool {
 }
 
 func main() {
-	// Per the challenge:
-	//   Using this attack, generate a secret-prefix MAC under a secret key (choose a random word from
-	//   /usr/share/dict/words or something) of [this string].
 	const omsg = "comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon"
 	omac := sign([]byte(omsg))
 	if !verify([]byte(omsg), omac) {
-		panic("failed verifying MAC")
+		panic("failed verifying original MAC")
 	}
 
-	var state [5]uint32
-	if err := binary.Read(bytes.NewReader(omac), binary.BigEndian, state[:]); err != nil {
+	// MD4 looks like it uses little-endian numbers rather than big-endian.
+	// This is backed up by
+	// https://en.wikipedia.org/wiki/Comparison_of_cryptographic_hash_functions#Compression_function.
+	var state [4]uint32
+	if err := binary.Read(bytes.NewReader(omac), binary.LittleEndian, state[:]); err != nil {
 		panic(fmt.Sprintf("failed reading MAC %x as state: %v", omac, err))
 	}
 
@@ -58,18 +60,18 @@ func main() {
 		// The amount of padding is dependent on the (unknown) length of the key
 		// and the (known) length of the original message.
 		olen := kl + len(omsg)
-		pad := common.MDPadding(olen, binary.BigEndian)
+		pad := common.MDPadding(olen, binary.LittleEndian)
 
 		// Initialize a new hash.Hash and write the original message length's worth of
 		// data to it, including the unknown key and the padding. The content doesn't matter,
 		// since we're going to inject the state that resulted after generating the original MAC.
 		// This just sets up the hash's other internal variables (e.g. message length).
-		h := sha1.New()
+		h := md4.New()
 		h.Write(common.A(olen + len(pad)))
 
 		// Restore the state that the hash was in when the original MAC was generated (which
 		// is just the original MAC itself) and then add our extra data.
-		sha1.SetState(h, state)
+		md4.SetState(h, state)
 		h.Write([]byte(extra))
 		mac := h.Sum(nil)
 

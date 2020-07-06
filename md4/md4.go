@@ -120,3 +120,9 @@ func (d0 *digest) Sum(in []byte) []byte {
 	}
 	return in
 }
+
+// SetState sets h to the supplied state to enable MAC length-extension attacks.
+// h must have been returned by an earlier call to this package's New() function.
+func SetState(h hash.Hash, state [4]uint32) {
+	copy(h.(*digest).s[:], state[:])
+}

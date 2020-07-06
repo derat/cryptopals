@@ -10,6 +10,8 @@ import (
 )
 
 // MDPadding computes SHA-1, MD4, etc. padding for a message of length mlen *bytes*.
+// bo specifies the byte order used when appending the length (SHA-1 uses big-endian,
+// while MD4 uses little-endian).
 //
 // Pseudocode from https://en.wikipedia.org/wiki/SHA-1#SHA-1_pseudocode:
 //
@@ -18,7 +20,7 @@ import (
 //     is congruent to −64 ≡ 448 (mod 512)
 //   append ml, the original message length, as a 64-bit big-endian integer.
 //   Thus, the total length is a multiple of 512 bits.
-func MDPadding(mlen int) []byte {
+func MDPadding(mlen int, bo binary.ByteOrder) []byte {
 	var b bytes.Buffer
 	b.Grow(64)
 
@@ -31,7 +33,7 @@ func MDPadding(mlen int) []byte {
 	}
 
 	// Now add the original length in bits.
-	binary.Write(&b, binary.BigEndian, uint64(mlen*8))
+	binary.Write(&b, bo, uint64(mlen*8))
 
 	return b.Bytes()
 }
