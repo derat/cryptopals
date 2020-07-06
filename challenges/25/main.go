@@ -1,4 +1,4 @@
-// Break fixed-nonce CTR statistically
+// Break "random access read/write" AES CTR
 package main
 
 import (
