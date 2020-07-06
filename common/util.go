@@ -8,6 +8,8 @@ import (
 	"bufio"
 	"encoding/base64"
 	"io/ioutil"
+	"math"
+	"math/rand"
 	"os"
 )
 
@@ -65,4 +67,34 @@ func ReadBase64Lines(p string) [][]byte {
 		panic(err)
 	}
 	return bufs
+}
+
+// RandWord returns a randomly-chosen word from /usr/share/dict/words.
+// The maximum length of all words is also returned.
+func RandWord() (word string, maxLen int) {
+	rand.Seed(RandInt64(math.MaxInt64)) // rand package seeds with 1 by default
+
+	f, err := os.Open("/usr/share/dict/words")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	nw := 0
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		nw++
+		w := sc.Text()
+		if len(w) > maxLen {
+			maxLen = len(w)
+		}
+		if rand.Float64() < 1/float64(nw) {
+			word = w
+		}
+	}
+	if err := sc.Err(); err != nil {
+		panic(err)
+	}
+
+	return word, maxLen
 }
