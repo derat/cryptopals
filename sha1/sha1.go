@@ -264,3 +264,9 @@ func Sum(data []byte) [Size]byte {
 	d.Write(data)
 	return d.checkSum()
 }
+
+// SetState sets h to the supplied state to enable MAC length-extension attacks.
+// h must have been returned by an earlier call to this package's New() function.
+func SetState(h hash.Hash, state [5]uint32) {
+	copy(h.(*digest).h[:], state[:])
+}
