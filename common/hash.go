@@ -7,6 +7,8 @@ package common
 import (
 	"bytes"
 	"encoding/binary"
+
+	"github.com/derat/cryptopals/sha1"
 )
 
 // MDPadding computes SHA-1, MD4, etc. padding for a message of length mlen *bytes*.
@@ -36,4 +38,27 @@ func MDPadding(mlen int, bo binary.ByteOrder) []byte {
 	binary.Write(&b, bo, uint64(mlen*8))
 
 	return b.Bytes()
+}
+
+// HMACSHA1 implements HMAC as described at https://en.wikipedia.org/wiki/HMAC#Implementation
+// using SHA-1 as its hash function.
+func HMACSHA1(msg, key []byte) []byte {
+	const bs = 64 // hardcoded for SHA-1
+
+	// Hash the key if it's too long.
+	if len(key) > bs {
+		ka := sha1.Sum(key)
+		key = ka[:]
+	}
+	// Extend the key with zero bytes if it's too short.
+	if len(key) < bs {
+		key = append([]byte{}, key...)
+		key = append(key, bytes.Repeat([]byte{0x0}, bs-len(key))...)
+	}
+
+	okp := XOR(key, bytes.Repeat([]byte{0x5c}, bs))
+	ikp := XOR(key, bytes.Repeat([]byte{0x36}, bs))
+	is := sha1.Sum(append(ikp, msg...))
+	h := sha1.Sum(append(okp, is[:]...))
+	return h[:]
 }
